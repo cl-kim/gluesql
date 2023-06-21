@@ -29,8 +29,8 @@ mod hello_world {
             Write queries as a string
         */
         let queries = "
-            CREATE TABLE greet (name TEXT);
-            INSERT INTO greet VALUES ('World');
+            CREATE TABLE greet (first_name TEXT, last_name TEXT);
+            INSERT INTO greet VALUES ('Chaelin, Kim');
         ";
 
         glue.execute(queries).await.expect("Execution failed");
@@ -39,7 +39,7 @@ mod hello_world {
             Select inserted row
         */
         let queries = "
-            SELECT name FROM greet
+            SELECT first_name, last_name  FROM greet
         ";
 
         let result = glue.execute(queries).await.expect("Failed to execute");
@@ -54,12 +54,12 @@ mod hello_world {
         };
 
         let first_row = &rows[0];
-        let first_value = first_row.iter().next().unwrap();
+        let name_value = first_row.iter().next().unwrap();
 
         /*
             Row values are wrapped into a value enum, on the basis of the result type
         */
-        let to_greet = match first_value {
+        let to_greet = match name_value {
             Value::Str(to_greet) => to_greet,
             value => panic!("Unexpected type: {:?}", value),
         };

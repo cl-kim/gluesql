@@ -5,6 +5,7 @@ use {
         data::{Key, Point, Value, ValueError},
         result::{Error, Result},
     },
+    ordered_float::OrderedFloat,
     chrono::{Datelike, Duration, Months},
     md5::{Digest, Md5},
     rand::{rngs::StdRng, Rng, SeedableRng},
@@ -44,7 +45,7 @@ macro_rules! eval_to_float {
     ($name: expr, $evaluated: expr) => {
         match $evaluated.try_into()? {
             Value::I64(v) => v as f64,
-            Value::F32(v) => v.into(),
+            Value::F32(v) => v.into_inner() as f64,
             Value::F64(v) => v,
             Value::Null => {
                 return Ok(Evaluated::Value(Value::Null));
@@ -293,7 +294,7 @@ pub fn abs<'a>(name: String, n: Evaluated<'_>) -> Result<Evaluated<'a>> {
         Value::I64(v) => Ok(Evaluated::Value(Value::I64(v.abs()))),
         Value::I128(v) => Ok(Evaluated::Value(Value::I128(v.abs()))),
         Value::Decimal(v) => Ok(Evaluated::Value(Value::Decimal(v.abs()))),
-        Value::F32(v) => Ok(Evaluated::Value(Value::F32(v.abs()))),
+        Value::F32(v) => Ok(Evaluated::Value(Value::F32(OrderedFloat::from(v.into_inner().abs())))),
         Value::F64(v) => Ok(Evaluated::Value(Value::F64(v.abs()))),
         Value::Null => Ok(Evaluated::Value(Value::Null)),
         _ => Err(EvaluateError::FunctionRequiresFloatValue(name).into()),
@@ -420,7 +421,7 @@ pub fn div<'a>(
     divisor: Evaluated<'_>,
 ) -> Result<Evaluated<'a>> {
     let dividend = match dividend.try_into()? {
-        Value::F32(number) => number as f64,
+        Value::F32(number) => number.into_inner() as f64,
         Value::F64(number) => number,
         Value::I64(number) => number as f64,
         Value::Null => {
@@ -434,7 +435,7 @@ pub fn div<'a>(
     let divisor = match divisor.try_into()? {
         Value::F32(number) => match number {
             x if x == 0.0 => return Err(EvaluateError::DivisorShouldNotBeZero.into()),
-            _ => number as f64,
+            _ => number.into_inner() as f64,
         },
         Value::F64(number) => match number {
             x if x == 0.0 => return Err(EvaluateError::DivisorShouldNotBeZero.into()),

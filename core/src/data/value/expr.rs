@@ -51,7 +51,7 @@ impl TryFrom<Value> for Expr {
                 BigDecimal::from_u128(v).ok_or(ValueToExprConversionFailure)?,
             )),
             Value::F32(v) => Expr::Literal(AstLiteral::Number(
-                BigDecimal::from_f32(v).ok_or(ValueToExprConversionFailure)?,
+                BigDecimal::from_f32(v.into_inner()).ok_or(ValueToExprConversionFailure)?,
             )),
             Value::F64(v) => Expr::Literal(AstLiteral::Number(
                 BigDecimal::from_f64(v).ok_or(ValueToExprConversionFailure)?,
@@ -133,6 +133,7 @@ mod tests {
         bigdecimal::{BigDecimal, FromPrimitive},
         chrono::{NaiveDate, NaiveTime},
         rust_decimal::Decimal,
+        ordered_float::OrderedFloat,
         std::collections::HashMap,
     };
 
@@ -205,7 +206,7 @@ mod tests {
         );
 
         assert_eq!(
-            Value::F32(64.4_f32).try_into(),
+            Value::F32(OrderedFloat::from(64.4_f32)).try_into(),
             Ok(Expr::Literal(AstLiteral::Number(
                 BigDecimal::from_f32(64.4).unwrap()
             )))

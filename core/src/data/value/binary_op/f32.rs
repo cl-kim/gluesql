@@ -6,13 +6,14 @@ use {
         result::Result,
     },
     rust_decimal::prelude::Decimal,
+    ordered_float::OrderedFloat,
     std::cmp::Ordering,
     Value::*,
 };
 
-impl PartialEq<Value> for f32 {
+impl PartialEq<Value> for OrderedFloat<f32> {
     fn eq(&self, other: &Value) -> bool {
-        let lhs = *self;
+        let lhs = self.into_inner();
 
         match *other {
             I8(rhs) => (lhs - (rhs as f32)).abs() < f32::EPSILON,
@@ -25,7 +26,7 @@ impl PartialEq<Value> for f32 {
             U32(rhs) => (lhs - (rhs as f32)).abs() < f32::EPSILON,
             U64(rhs) => (lhs - (rhs as f32)).abs() < f32::EPSILON,
             U128(rhs) => (lhs - (rhs as f32)).abs() < f32::EPSILON,
-            F32(rhs) => (lhs - rhs).abs() < f32::EPSILON,
+            F32(rhs) => (lhs - rhs.into_inner()).abs() < f32::EPSILON,
             F64(rhs) => (lhs - rhs as f32).abs() < f32::EPSILON,
             Decimal(rhs) => Decimal::from_f32_retain(lhs)
                 .map(|x| rhs == x)
@@ -35,22 +36,22 @@ impl PartialEq<Value> for f32 {
     }
 }
 
-impl PartialOrd<Value> for f32 {
+impl PartialOrd<Value> for OrderedFloat<f32> {
     fn partial_cmp(&self, other: &Value) -> Option<Ordering> {
         match *other {
-            I8(rhs) => self.partial_cmp(&(rhs as f32)),
-            I16(rhs) => self.partial_cmp(&(rhs as f32)),
-            I32(rhs) => self.partial_cmp(&(rhs as f32)),
-            I64(rhs) => self.partial_cmp(&(rhs as f32)),
-            I128(rhs) => self.partial_cmp(&(rhs as f32)),
-            U8(rhs) => self.partial_cmp(&(rhs as f32)),
-            U16(rhs) => self.partial_cmp(&(rhs as f32)),
-            U32(rhs) => self.partial_cmp(&(rhs as f32)),
-            U64(rhs) => self.partial_cmp(&(rhs as f32)),
-            U128(rhs) => self.partial_cmp(&(rhs as f32)),
-            F64(rhs) => self.partial_cmp(&(rhs as f32)),
+            I8(rhs) => self.into_inner().partial_cmp(&(rhs as f32)),
+            I16(rhs) => self.into_inner().partial_cmp(&(rhs as f32)),
+            I32(rhs) => self.into_inner().partial_cmp(&(rhs as f32)),
+            I64(rhs) => self.into_inner().partial_cmp(&(rhs as f32)),
+            I128(rhs) => self.into_inner().partial_cmp(&(rhs as f32)),
+            U8(rhs) => self.into_inner().partial_cmp(&(rhs as f32)),
+            U16(rhs) => self.into_inner().partial_cmp(&(rhs as f32)),
+            U32(rhs) => self.into_inner().partial_cmp(&(rhs as f32)),
+            U64(rhs) => self.into_inner().partial_cmp(&(rhs as f32)),
+            U128(rhs) => self.into_inner().partial_cmp(&(rhs as f32)),
+            F64(rhs) => self.into_inner().partial_cmp(&(rhs as f32)),
             F32(rhs) => self.partial_cmp(&rhs),
-            Decimal(rhs) => Decimal::from_f32_retain(*self)
+            Decimal(rhs) => Decimal::from_f32_retain(f32::from(*self))
                 .map(|x| x.partial_cmp(&rhs))
                 .unwrap_or(None),
             _ => None,
@@ -58,7 +59,7 @@ impl PartialOrd<Value> for f32 {
     }
 }
 
-impl TryBinaryOperator for f32 {
+impl TryBinaryOperator  for OrderedFloat<f32> {
     type Rhs = Value;
 
     fn try_add(&self, rhs: &Self::Rhs) -> Result<Value> {
@@ -77,10 +78,10 @@ impl TryBinaryOperator for f32 {
             U128(rhs) => Ok(F32(lhs + rhs as f32)),
             F64(rhs) => Ok(F32(lhs + rhs as f32)),
             F32(rhs) => Ok(F32(lhs + rhs)),
-            Decimal(rhs) => Decimal::from_f32_retain(lhs)
+            Decimal(rhs) => Decimal::from_f32_retain(*lhs)
                 .map(|x| Ok(Decimal(x + rhs)))
                 .unwrap_or_else(|| {
-                    Err(ValueError::FloatToDecimalConversionFailure(lhs.into()).into())
+                    Err(ValueError::FloatToDecimalConversionFailure(lhs.into_inner() as f64).into())
                 }),
             Null => Ok(Null),
             _ => Err(ValueError::NonNumericMathOperation {
@@ -108,10 +109,10 @@ impl TryBinaryOperator for f32 {
             U128(rhs) => Ok(F32(lhs - rhs as f32)),
             F64(rhs) => Ok(F32(lhs - rhs as f32)),
             F32(rhs) => Ok(F32(lhs - rhs)),
-            Decimal(rhs) => Decimal::from_f32_retain(lhs)
+            Decimal(rhs) => Decimal::from_f32_retain(*lhs)
                 .map(|x| Ok(Decimal(x - rhs)))
                 .unwrap_or_else(|| {
-                    Err(ValueError::FloatToDecimalConversionFailure(lhs.into()).into())
+                    Err(ValueError::FloatToDecimalConversionFailure(lhs.into_inner() as f64).into())
                 }),
             Null => Ok(Null),
             _ => Err(ValueError::NonNumericMathOperation {
@@ -139,11 +140,11 @@ impl TryBinaryOperator for f32 {
             U128(rhs) => Ok(F32(lhs * rhs as f32)),
             F64(rhs) => Ok(F32(lhs * rhs as f32)),
             F32(rhs) => Ok(F32(lhs * rhs)),
-            Interval(rhs) => Ok(Interval(lhs * rhs)),
-            Decimal(rhs) => Decimal::from_f32_retain(lhs)
+            Interval(rhs) => Ok(Interval(lhs.into_inner() * rhs)),
+            Decimal(rhs) => Decimal::from_f32_retain(*lhs)
                 .map(|x| Ok(Decimal(x * rhs)))
                 .unwrap_or_else(|| {
-                    Err(ValueError::FloatToDecimalConversionFailure(lhs.into()).into())
+                    Err(ValueError::FloatToDecimalConversionFailure(lhs.into_inner() as f64).into())
                 }),
             Null => Ok(Null),
             _ => Err(ValueError::NonNumericMathOperation {
@@ -171,10 +172,10 @@ impl TryBinaryOperator for f32 {
             U128(rhs) => Ok(F32(lhs / rhs as f32)),
             F64(rhs) => Ok(F32(lhs / rhs as f32)),
             F32(rhs) => Ok(F32(lhs / rhs)),
-            Decimal(rhs) => Decimal::from_f32_retain(lhs)
+            Decimal(rhs) => Decimal::from_f32_retain(*lhs)
                 .map(|x| Ok(Decimal(x * rhs)))
                 .unwrap_or_else(|| {
-                    Err(ValueError::FloatToDecimalConversionFailure(lhs.into()).into())
+                    Err(ValueError::FloatToDecimalConversionFailure(lhs.into_inner() as f64).into())
                 }),
             Null => Ok(Null),
             _ => Err(ValueError::NonNumericMathOperation {
@@ -202,7 +203,7 @@ impl TryBinaryOperator for f32 {
             U128(rhs) => Ok(F32(lhs % rhs as f32)),
             F64(rhs) => Ok(F32(lhs % rhs as f32)),
             F32(rhs) => Ok(F32(lhs % rhs)),
-            Decimal(rhs) => match Decimal::from_f32_retain(lhs) {
+            Decimal(rhs) => match Decimal::from_f32_retain(*lhs) {
                 Some(x) => x
                     .checked_rem(rhs)
                     .map(|y| Ok(Decimal(y)))
@@ -214,7 +215,7 @@ impl TryBinaryOperator for f32 {
                         }
                         .into())
                     }),
-                _ => Err(ValueError::FloatToDecimalConversionFailure(lhs.into()).into()),
+                _ => Err(ValueError::FloatToDecimalConversionFailure(lhs.into_inner() as f64).into()),
             },
             Null => Ok(Null),
             _ => Err(ValueError::NonNumericMathOperation {
@@ -233,12 +234,13 @@ mod tests {
         super::{TryBinaryOperator, Value::*},
         crate::data::{NumericBinaryOperator, ValueError},
         rust_decimal::prelude::Decimal,
+        ordered_float::OrderedFloat,
         std::cmp::Ordering,
     };
 
     #[test]
     fn eq() {
-        let base = 1.0_f32;
+        let base = OrderedFloat::from(1.0_f32);
 
         assert_eq!(base, I8(1));
         assert_eq!(base, I16(1));
@@ -251,7 +253,7 @@ mod tests {
         assert_eq!(base, U64(1));
         assert_eq!(base, U128(1));
         assert_eq!(base, F64(1.0));
-        assert_eq!(base, F32(1.0_f32));
+        assert_eq!(base, F32(OrderedFloat::from(1.0_f32)));
         assert_eq!(base, Decimal(Decimal::from(1)));
 
         assert_ne!(base, Bool(true));
@@ -259,7 +261,7 @@ mod tests {
 
     #[test]
     fn partial_cmp() {
-        let base = 1.0_f32;
+        let base = OrderedFloat::from(1.0_f32);
 
         assert_eq!(base.partial_cmp(&I8(1)), Some(Ordering::Equal));
         assert_eq!(base.partial_cmp(&I16(1)), Some(Ordering::Equal));
@@ -272,7 +274,7 @@ mod tests {
         assert_eq!(base.partial_cmp(&U64(1)), Some(Ordering::Equal));
         assert_eq!(base.partial_cmp(&U128(1)), Some(Ordering::Equal));
         assert_eq!(base.partial_cmp(&F64(1.0)), Some(Ordering::Equal));
-        assert_eq!(base.partial_cmp(&F32(1.0_f32)), Some(Ordering::Equal));
+        assert_eq!(base.partial_cmp(&F32(OrderedFloat::from(1.0_f32))), Some(Ordering::Equal));
         assert_eq!(
             base.partial_cmp(&Decimal(Decimal::ONE)),
             Some(Ordering::Equal)
@@ -283,7 +285,7 @@ mod tests {
 
     #[test]
     fn try_add() {
-        let base = 1.0_f32;
+        let base = OrderedFloat::from(1.0_f32);
 
         assert!(matches!(base.try_add(&I8(1)), Ok(F32(x)) if (x - 2.0).abs() < f32::EPSILON ));
         assert!(matches!(base.try_add(&I16(1)), Ok(F32(x)) if (x - 2.0).abs() < f32::EPSILON ));
@@ -297,20 +299,20 @@ mod tests {
         assert!(matches!(base.try_add(&U128(1)),Ok(F32(x)) if (x-2.0).abs()<f32::EPSILON));
         assert!(matches!(base.try_add(&F64(1.0)), Ok(F32(x)) if (x - 2.0).abs() < f32::EPSILON ));
         assert!(
-            matches!(base.try_add(&F32(1.0_f32)), Ok(F32(x)) if (x - 2.0).abs() < f32::EPSILON )
+            matches!(base.try_add(&F32(OrderedFloat::from(1.0_f32))), Ok(F32(x)) if (x - 2.0).abs() < f32::EPSILON )
         );
         assert!(
             matches!(base.try_add(&Decimal(Decimal::ONE)), Ok(Decimal(x)) if x == Decimal::TWO)
         );
         assert_eq!(
-            f32::MAX.try_add(&Decimal(Decimal::ONE)),
+            OrderedFloat::from(f32::MAX).try_add(&Decimal(Decimal::ONE)),
             Err(ValueError::FloatToDecimalConversionFailure(f32::MAX.into()).into())
         );
 
         assert_eq!(
             base.try_add(&Bool(true)),
             Err(ValueError::NonNumericMathOperation {
-                lhs: F32(1.0_f32),
+                lhs: F32(OrderedFloat::from(1.0_f32)),
                 operator: NumericBinaryOperator::Add,
                 rhs: Bool(true)
             }
@@ -320,7 +322,7 @@ mod tests {
 
     #[test]
     fn try_subtract() {
-        let base = 1.0_f32;
+        let base = OrderedFloat::from(1.0_f32);
 
         assert!(matches!(base.try_subtract(&I8(1)), Ok(F32(x)) if (x - 0.0).abs() < f32::EPSILON ));
         assert!(
@@ -354,20 +356,20 @@ mod tests {
             matches!(base.try_subtract(&F64(1.0)), Ok(F32(x)) if (x - 0.0).abs() < f32::EPSILON )
         );
         assert!(
-            matches!(base.try_subtract(&F32(1.0_f32)), Ok(F32(x)) if (x - 0.0).abs() < f32::EPSILON )
+            matches!(base.try_subtract(&F32(OrderedFloat::from(1.0_f32))), Ok(F32(x)) if (x - 0.0).abs() < f32::EPSILON )
         );
         assert!(
             matches!(base.try_subtract(&Decimal(Decimal::ONE)), Ok(Decimal(x)) if x == Decimal::ZERO)
         );
         assert_eq!(
-            f32::MIN.try_subtract(&Decimal(Decimal::ONE)),
+            OrderedFloat::from(f32::MIN).try_subtract(&Decimal(Decimal::ONE)),
             Err(ValueError::FloatToDecimalConversionFailure(f32::MIN.into()).into())
         );
 
         assert_eq!(
             base.try_subtract(&Bool(true)),
             Err(ValueError::NonNumericMathOperation {
-                lhs: F32(1.0_f32),
+                lhs: F32(OrderedFloat::from(1.0_f32)),
                 operator: NumericBinaryOperator::Subtract,
                 rhs: Bool(true)
             }
@@ -377,7 +379,7 @@ mod tests {
 
     #[test]
     fn try_multiply() {
-        let base = 1.0_f32;
+        let base = OrderedFloat::from(1.0_f32);
 
         assert!(matches!(base.try_multiply(&I8(1)), Ok(F32(x)) if (x - 1.0).abs() < f32::EPSILON ));
         assert!(
@@ -409,20 +411,20 @@ mod tests {
             matches!(base.try_multiply(&F64(1.0)), Ok(F32(x)) if (x - 1.0).abs() < f32::EPSILON )
         );
         assert!(
-            matches!(base.try_multiply(&F32(1.0_f32)), Ok(F32(x)) if (x - 1.0).abs() < f32::EPSILON )
+            matches!(base.try_multiply(&F32(OrderedFloat::from(1.0_f32))), Ok(F32(x)) if (x - 1.0).abs() < f32::EPSILON )
         );
         assert!(
             matches!(base.try_multiply(&Decimal(Decimal::ONE)), Ok(Decimal(x)) if x == Decimal::ONE)
         );
         assert_eq!(
-            f32::MAX.try_multiply(&Decimal(Decimal::TWO)),
+            OrderedFloat::from(f32::MAX).try_multiply(&Decimal(Decimal::TWO)),
             Err(ValueError::FloatToDecimalConversionFailure(f32::MAX.into()).into())
         );
 
         assert_eq!(
             base.try_multiply(&Bool(true)),
             Err(ValueError::NonNumericMathOperation {
-                lhs: F32(1.0_f32),
+                lhs: F32(OrderedFloat::from(1.0_f32)),
                 operator: NumericBinaryOperator::Multiply,
                 rhs: Bool(true)
             }
@@ -432,7 +434,7 @@ mod tests {
 
     #[test]
     fn try_divide() {
-        let base = 1.0_f32;
+        let base = OrderedFloat::from(1.0_f32);
 
         assert!(matches!(base.try_divide(&I8(1)), Ok(F32(x)) if (x - 1.0).abs() < f32::EPSILON ));
         assert!(matches!(base.try_divide(&I16(1)), Ok(F32(x)) if (x - 1.0).abs() < f32::EPSILON ));
@@ -449,20 +451,20 @@ mod tests {
             matches!(base.try_divide(&F64(1.0)), Ok(F32(x)) if (x - 1.0).abs() < f32::EPSILON )
         );
         assert!(
-            matches!(base.try_divide(&F32(1.0_f32)), Ok(F32(x)) if (x - 1.0).abs() < f32::EPSILON )
+            matches!(base.try_divide(&F32(OrderedFloat::from(1.0_f32))), Ok(F32(x)) if (x - 1.0).abs() < f32::EPSILON )
         );
         assert!(
             matches!(base.try_divide(&Decimal(Decimal::ONE)), Ok(Decimal(x)) if x == Decimal::ONE)
         );
         assert_eq!(
-            f32::MIN.try_divide(&Decimal(Decimal::TWO)),
+            OrderedFloat::from(f32::MIN).try_divide(&Decimal(Decimal::TWO)),
             Err(ValueError::FloatToDecimalConversionFailure(f32::MIN.into()).into())
         );
 
         assert_eq!(
             base.try_divide(&Bool(true)),
             Err(ValueError::NonNumericMathOperation {
-                lhs: F32(1.0_f32),
+                lhs: F32(OrderedFloat::from(1.0_f32)),
                 operator: NumericBinaryOperator::Divide,
                 rhs: Bool(true)
             }
@@ -472,7 +474,7 @@ mod tests {
 
     #[test]
     fn try_modulo() {
-        let base = 1.0_f32;
+        let base = OrderedFloat::from(1.0_f32);
 
         assert!(matches!(base.try_modulo(&I8(1)), Ok(F32(x)) if (x - 0.0).abs() < f32::EPSILON ));
         assert!(matches!(base.try_modulo(&I16(1)), Ok(F32(x)) if (x - 0.0).abs() < f32::EPSILON ));
@@ -489,13 +491,13 @@ mod tests {
             matches!(base.try_modulo(&F64(1.0)), Ok(F32(x)) if (x - 0.0).abs() < f32::EPSILON )
         );
         assert!(
-            matches!(base.try_modulo(&F32(1.0_f32)), Ok(F32(x)) if (x - 0.0).abs() < f32::EPSILON )
+            matches!(base.try_modulo(&F32(OrderedFloat::from(1.0_f32))), Ok(F32(x)) if (x - 0.0).abs() < f32::EPSILON )
         );
         assert!(
             matches!(base.try_modulo(&Decimal(Decimal::ONE)), Ok(Decimal(x)) if x == Decimal::ZERO)
         );
         assert_eq!(
-            f32::MAX.try_modulo(&Decimal(Decimal::TWO)),
+            OrderedFloat::from(f32::MAX).try_modulo(&Decimal(Decimal::TWO)),
             Err(ValueError::FloatToDecimalConversionFailure(f32::MAX.into()).into())
         );
         assert_eq!(
@@ -511,7 +513,7 @@ mod tests {
         assert_eq!(
             base.try_modulo(&Bool(true)),
             Err(ValueError::NonNumericMathOperation {
-                lhs: F32(1.0_f32),
+                lhs: F32(OrderedFloat::from(1.0_f32)),
                 operator: NumericBinaryOperator::Modulo,
                 rhs: Bool(true)
             }

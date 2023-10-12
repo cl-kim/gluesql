@@ -1104,6 +1104,7 @@ dependencies = [
  "chrono",
  "gluesql-core",
  "hex",
+ "ordered-float",
  "pretty_assertions",
  "rust_decimal",
  "serde_json",

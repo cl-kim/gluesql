@@ -1,6 +1,7 @@
 use {
     crate::*,
     gluesql_core::prelude::{Payload, Value::*},
+    ordered_float::OrderedFloat,
 };
 
 test_case!(float32, {
@@ -20,7 +21,7 @@ test_case!(float32, {
             Ok(select!(
                 x          |  y
                 F32        |  F32;
-                0.3134_f32    0.156_f32
+                OrderedFloat(0.3134_f32)    OrderedFloat(0.156_f32)
             )),
         ),
         (
@@ -32,7 +33,7 @@ test_case!(float32, {
             Ok(select!(
                 x       |   y
                 F32     |   F32;
-                2.0_f32     1.0_f32
+                OrderedFloat(2.0_f32)     OrderedFloat(1.0_f32)
             )),
         ),
         (
@@ -44,8 +45,7 @@ test_case!(float32, {
             Ok(select!(
                 float32
                 F32;
-                -71.064544_f32
-
+                OrderedFloat(-71.064544_f32)
             )),
         ),
     ];

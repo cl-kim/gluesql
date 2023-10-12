@@ -12,6 +12,7 @@ use {
     bigdecimal::BigDecimal,
     chrono::NaiveDate,
     rust_decimal::Decimal,
+    ordered_float::OrderedFloat,
     std::{
         cmp::Ordering,
         net::{IpAddr, Ipv4Addr, Ipv6Addr},
@@ -109,7 +110,7 @@ impl Value {
             (Value::U32(l), Literal::Number(r)) => l.partial_cmp(&r.to_u32()?),
             (Value::U64(l), Literal::Number(r)) => l.partial_cmp(&r.to_u64()?),
             (Value::U128(l), Literal::Number(r)) => l.partial_cmp(&r.to_u128()?),
-            (Value::F32(l), Literal::Number(r)) => l.partial_cmp(&r.to_f32()?),
+            (Value::F32(l), Literal::Number(r)) => l.into_inner().partial_cmp(&r.to_f32()?),
             (Value::F64(l), Literal::Number(r)) => l.partial_cmp(&r.to_f64()?),
             (Value::Decimal(l), Literal::Number(r)) => {
                 BigDecimal::new(l.mantissa().into(), l.scale() as i64).partial_cmp(r)
@@ -178,6 +179,7 @@ impl Value {
                 .ok_or_else(|| ValueError::FailedToParseNumber.into()),
             (DataType::Float32, Literal::Number(v)) => v
                 .to_f32()
+                .map(OrderedFloat::from)
                 .map(Value::F32)
                 .ok_or_else(|| ValueError::UnreachableNumberParsing.into()),
             (DataType::Float, Literal::Number(v)) => v
@@ -385,18 +387,21 @@ impl Value {
             }
 
             (DataType::Float32, Literal::Text(v)) => v
-                .parse::<f32>()
+                .parse::<OrderedFloat<f32>>()
                 .map(Value::F32)
                 .map_err(|_| ValueError::LiteralCastFromTextToFloatFailed(v.to_string()).into()),
             (DataType::Float32, Literal::Number(v)) => {
-                v.to_f32().map(Value::F32).ok_or_else(|| {
+                v.to_f32()
+                    .map(OrderedFloat::from)
+                    .map(Value::F32)
+                    .ok_or_else(|| {
                     ValueError::UnreachableLiteralCastFromNumberToFloat(v.to_string()).into()
                 })
             }
             (DataType::Float32, Literal::Boolean(v)) => {
                 let v = if *v { 1.0 } else { 0.0 };
 
-                Ok(Value::F32(v))
+                Ok(Value::F32(OrderedFloat(v)))
             }
             (DataType::Float, Literal::Text(v)) => v
                 .parse::<f64>()
@@ -494,6 +499,7 @@ mod tests {
         bigdecimal::BigDecimal,
         chrono::{NaiveDate, NaiveDateTime, NaiveTime},
         rust_decimal::Decimal,
+        ordered_float::OrderedFloat,
         std::{
             borrow::Cow,
             cmp::Ordering,
@@ -549,7 +555,7 @@ mod tests {
         assert!(Value::U32(64).evaluate_eq_with_literal(num!("64")));
         assert!(Value::U64(64).evaluate_eq_with_literal(num!("64")));
         assert!(Value::U128(64).evaluate_eq_with_literal(num!("64")));
-        assert!(Value::F32(7.123).evaluate_eq_with_literal(num!("7.123")));
+        assert!(Value::F32(OrderedFloat::from(7.123)).evaluate_eq_with_literal(num!("7.123")));
         assert!(Value::F64(7.123).evaluate_eq_with_literal(num!("7.123")));
         assert!(Value::Str("Hello".to_owned()).evaluate_eq_with_literal(text!("Hello")));
         assert!(Value::Bytea(bytea()).evaluate_eq_with_literal(&Literal::Bytea(bytea())));
@@ -590,7 +596,7 @@ mod tests {
         test(Value::U32(10), num(3), Some(Ordering::Greater));
         test(Value::U64(10), num(10), Some(Ordering::Equal));
         test(Value::U128(10), num(10), Some(Ordering::Equal));
-        test(Value::F32(10.0), num(10), Some(Ordering::Equal));
+        test(Value::F32(OrderedFloat::from(10.0)), num(10), Some(Ordering::Equal));
         test(Value::F64(10.0), num(10), Some(Ordering::Equal));
         test(
             Value::Decimal(Decimal::new(215, 2)),
@@ -741,7 +747,7 @@ mod tests {
         test!(
             DataType::Float32,
             num!("123456789"),
-            Value::F32(123456789.0_f32)
+            Value::F32(OrderedFloat::from(123456789.0_f32))
         );
         test!(DataType::Float, num!("123456789"), Value::F64(123456789.0));
         test!(
@@ -875,7 +881,7 @@ mod tests {
         test!(Literal::Bytea(bytea("1234")), Value::Bytea(bytea("1234")));
         test!(&Literal::Bytea(bytea("1234")), Value::Bytea(bytea("1234")));
         test!(num!("1234567890"), Value::I64(1234567890));
-        test!(num!("1.0"), Value::F32(1.0_f32));
+        test!(num!("1.0"), Value::F32(OrderedFloat::from(1.0_f32)));
         test!(num!("1.0"), Value::F64(1.0));
         test!(&Literal::Boolean(false), Value::Bool(false));
         assert!(matches!(Value::try_from(&Literal::Null), Ok(Value::Null)))
@@ -987,22 +993,22 @@ mod tests {
         test!(
             DataType::Float32,
             text!("12345.67"),
-            Value::F32(12345.67_f32)
+            Value::F32(OrderedFloat::from(12345.67_f32))
         );
         test!(
             DataType::Float32,
             num!("123456.78"),
-            Value::F32(123456.78_f32)
+            Value::F32(OrderedFloat::from(123456.78_f32))
         );
         test!(
             DataType::Float32,
             Literal::Boolean(true),
-            Value::F32(1.0_f32)
+            Value::F32(OrderedFloat::from(1.0_f32))
         );
         test!(
             DataType::Float32,
             Literal::Boolean(false),
-            Value::F32(0.0_f32)
+            Value::F32(OrderedFloat::from(0.0_f32))
         );
 
         test!(DataType::Float, text!("12345.6789"), Value::F64(12345.6789));

@@ -70,7 +70,7 @@ impl TryFrom<Value> for JsonValue {
             Value::U128(v) => JsonNumber::from_str(&v.to_string())
                 .map(JsonValue::Number)
                 .map_err(|_| ValueError::UnreachableJsonNumberParseFailure(v.to_string()).into()),
-            Value::F32(v) => Ok(v.into()),
+            Value::F32(v) => Ok(v.into_inner().into()),
             Value::F64(v) => Ok(v.into()),
             Value::Decimal(v) => JsonNumber::from_str(&v.to_string())
                 .map(JsonValue::Number)
@@ -136,6 +136,7 @@ mod tests {
         crate::data::{value::uuid::parse_uuid, Interval, Point, Value, ValueError},
         chrono::{NaiveDate, NaiveTime},
         rust_decimal::Decimal,
+        ordered_float::OrderedFloat,
         serde_json::{json, Number as JsonNumber, Value as JsonValue},
         std::{net::IpAddr, str::FromStr},
     };
@@ -192,7 +193,7 @@ mod tests {
         assert!(JsonValue::try_from(Value::I128(i128::MAX)).is_ok());
 
         assert_eq!(
-            Value::F32(1.23_f32).try_into(),
+            Value::F32(OrderedFloat::from(1.23_f32)).try_into(),
             Ok(JsonValue::Number(
                 JsonNumber::from_f64(1.23_f32 as f64).unwrap()
             ))

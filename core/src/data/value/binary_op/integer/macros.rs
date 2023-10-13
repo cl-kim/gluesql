@@ -243,8 +243,8 @@ macro_rules! generate_binary_op_tests {
                     overflow_err($variant($primitive::MAX), F32(OrderedFloat::from(1.0_f32)), Add)
                 );
                 assert_eq!(
-                    $primitive::MAX.try_add(&F64(1.0)),
-                    overflow_err($variant($primitive::MAX), F64(1.0), Add)
+                    $primitive::MAX.try_add(&F64(OrderedFloat::from(1.0))),
+                    overflow_err($variant($primitive::MAX), F64(OrderedFloat::from(1.0)), Add)
                 );
                 assert_eq!(
                     $primitive::MAX.try_add(&I8(1)),
@@ -303,8 +303,8 @@ macro_rules! generate_binary_op_tests {
                     overflow_err($variant($primitive::MIN), F32(OrderedFloat::from(1.0_f32)), Subtract)
                 );
                 assert_eq!(
-                    $primitive::MIN.try_subtract(&F64(1.0)),
-                    overflow_err($variant($primitive::MIN), F64(1.0), Subtract)
+                    $primitive::MIN.try_subtract(&F64(OrderedFloat::from(1.0))),
+                    overflow_err($variant($primitive::MIN), F64(OrderedFloat::from(1.0)), Subtract)
                 );
                 assert_eq!(
                     $primitive::MIN.try_subtract(&I8(1)),
@@ -363,8 +363,8 @@ macro_rules! generate_binary_op_tests {
                     overflow_err($variant($primitive::MAX), F32(OrderedFloat::from(2.0_f32)), Multiply)
                 );
                 assert_eq!(
-                    $primitive::MAX.try_multiply(&F64(2.0)),
-                    overflow_err($variant($primitive::MAX), F64(2.0), Multiply)
+                    $primitive::MAX.try_multiply(&F64(OrderedFloat::from(2.0))),
+                    overflow_err($variant($primitive::MAX), F64(OrderedFloat::from(2.0)), Multiply)
                 );
                 assert_eq!(
                     $primitive::MAX.try_multiply(&I8(2)),
@@ -419,8 +419,8 @@ macro_rules! generate_binary_op_tests {
                     overflow_err($variant($primitive::MAX), F32(OrderedFloat::from(0.0_f32)), Divide)
                 );
                 assert_eq!(
-                    $primitive::MAX.try_divide(&F64(0.0)),
-                    overflow_err($variant($primitive::MAX), F64(0.0), Divide)
+                    $primitive::MAX.try_divide(&F64(OrderedFloat::from(0.0))),
+                    overflow_err($variant($primitive::MAX), F64(OrderedFloat::from(0.0)), Divide)
                 );
                 assert_eq!(
                     $primitive::MAX.try_divide(&I8(0)),
@@ -475,8 +475,8 @@ macro_rules! generate_binary_op_tests {
                     overflow_err($variant($primitive::MAX), F32(OrderedFloat::from(0.0_f32)), Modulo)
                 );
                 assert_eq!(
-                    $primitive::MAX.try_modulo(&F64(0.0)),
-                    overflow_err($variant($primitive::MAX), F64(0.0), Modulo)
+                    $primitive::MAX.try_modulo(&F64(OrderedFloat::from(0.0))),
+                    overflow_err($variant($primitive::MAX), F64(OrderedFloat::from(0.0)), Modulo)
                 );
                 assert_eq!(
                     $primitive::MAX.try_modulo(&I8(0)),
@@ -526,7 +526,7 @@ macro_rules! generate_binary_op_tests {
 
                 assert_eq!(base.try_add(&Decimal(Decimal::ONE)), Ok($variant(2)));
                 assert_eq!(base.try_add(&F32(OrderedFloat::from(1.0_f32))), Ok($variant(2)));
-                assert_eq!(base.try_add(&F64(1.0)), Ok($variant(2)));
+                assert_eq!(base.try_add(&F64(OrderedFloat::from(1.0))), Ok($variant(2)));
                 assert_eq!(base.try_add(&I8(1)), Ok($variant(2)));
                 assert_eq!(base.try_add(&I16(1)), Ok($variant(2)));
                 assert_eq!(base.try_add(&I32(1)), Ok($variant(2)));
@@ -555,7 +555,7 @@ macro_rules! generate_binary_op_tests {
 
                 assert_eq!(base.try_subtract(&Decimal(Decimal::ONE)), Ok($variant(0)));
                 assert_eq!(base.try_subtract(&F32(OrderedFloat::from(1.0_f32))), Ok($variant(0)));
-                assert_eq!(base.try_subtract(&F64(1.0)), Ok($variant(0)));
+                assert_eq!(base.try_subtract(&F64(OrderedFloat::from(1.0))), Ok($variant(0)));
                 assert_eq!(base.try_subtract(&I8(1)), Ok($variant(0)));
                 assert_eq!(base.try_subtract(&I16(1)), Ok($variant(0)));
                 assert_eq!(base.try_subtract(&I32(1)), Ok($variant(0)));
@@ -584,7 +584,7 @@ macro_rules! generate_binary_op_tests {
 
                 assert_eq!(base.try_multiply(&Decimal(Decimal::TWO)), Ok($variant(6)));
                 assert_eq!(base.try_multiply(&F32(OrderedFloat::from(2.0_f32))), Ok($variant(6)));
-                assert_eq!(base.try_multiply(&F64(2.0)), Ok($variant(6)));
+                assert_eq!(base.try_multiply(&F64(OrderedFloat::from(2.0))), Ok($variant(6)));
                 assert_eq!(base.try_multiply(&I8(2)), Ok($variant(6)));
                 assert_eq!(base.try_multiply(&I16(2)), Ok($variant(6)));
                 assert_eq!(base.try_multiply(&I32(2)), Ok($variant(6)));
@@ -613,7 +613,7 @@ macro_rules! generate_binary_op_tests {
 
                 assert_eq!(base.try_divide(&Decimal(Decimal::TWO)), Ok($variant(3)));
                 assert_eq!(base.try_divide(&F32(OrderedFloat::from(2.0_f32))), Ok($variant(3)));
-                assert_eq!(base.try_divide(&F64(2.0)), Ok($variant(3)));
+                assert_eq!(base.try_divide(&F64(OrderedFloat::from(2.0))), Ok($variant(3)));
                 assert_eq!(base.try_divide(&I8(2)), Ok($variant(3)));
                 assert_eq!(base.try_divide(&I16(2)), Ok($variant(3)));
                 assert_eq!(base.try_divide(&I32(2)), Ok($variant(3)));
@@ -642,7 +642,7 @@ macro_rules! generate_binary_op_tests {
 
                 assert_eq!(base.try_modulo(&Decimal(Decimal::ONE)), Ok($variant(0)));
                 assert_eq!(base.try_modulo(&F32(OrderedFloat::from(1.0_f32))), Ok($variant(0)));
-                assert_eq!(base.try_modulo(&F64(1.0)), Ok($variant(0)));
+                assert_eq!(base.try_modulo(&F64(OrderedFloat::from(1.0))), Ok($variant(0)));
                 assert_eq!(base.try_modulo(&I8(1)), Ok($variant(0)));
                 assert_eq!(base.try_modulo(&I16(1)), Ok($variant(0)));
                 assert_eq!(base.try_modulo(&I32(1)), Ok($variant(0)));
@@ -720,7 +720,7 @@ macro_rules! generate_cmp_ord_tests {
 
                 assert_eq!(base, Decimal(Decimal::ONE));
                 assert_eq!(base, F32(OrderedFloat(1.0_f32)));
-                assert_eq!(base, F64(1.0));
+                assert_eq!(base, F64(OrderedFloat::from(1.0)));
                 assert_eq!(base, I8(1));
                 assert_eq!(base, I16(1));
                 assert_eq!(base, I32(1));
@@ -744,7 +744,7 @@ macro_rules! generate_cmp_ord_tests {
                     Some(Ordering::Greater)
                 );
                 assert_eq!(base.partial_cmp(&F32(OrderedFloat(0.0_f32))), Some(Ordering::Greater));
-                assert_eq!(base.partial_cmp(&F64(0.0)), Some(Ordering::Greater));
+                assert_eq!(base.partial_cmp(&F64(OrderedFloat::from(0.0))), Some(Ordering::Greater));
                 assert_eq!(base.partial_cmp(&I8(0)), Some(Ordering::Greater));
                 assert_eq!(base.partial_cmp(&I16(0)), Some(Ordering::Greater));
                 assert_eq!(base.partial_cmp(&I32(0)), Some(Ordering::Greater));
@@ -761,7 +761,7 @@ macro_rules! generate_cmp_ord_tests {
                     Some(Ordering::Equal)
                 );
                 assert_eq!(base.partial_cmp(&F32(OrderedFloat(1.0_f32))), Some(Ordering::Equal));
-                assert_eq!(base.partial_cmp(&F64(1.0)), Some(Ordering::Equal));
+                assert_eq!(base.partial_cmp(&F64(OrderedFloat::from(1.0))), Some(Ordering::Equal));
                 assert_eq!(base.partial_cmp(&I8(1)), Some(Ordering::Equal));
                 assert_eq!(base.partial_cmp(&I16(1)), Some(Ordering::Equal));
                 assert_eq!(base.partial_cmp(&I32(1)), Some(Ordering::Equal));
@@ -778,7 +778,7 @@ macro_rules! generate_cmp_ord_tests {
                     Some(Ordering::Less)
                 );
                 assert_eq!(base.partial_cmp(&F32(OrderedFloat(2.0_f32))), Some(Ordering::Less));
-                assert_eq!(base.partial_cmp(&F64(2.0)), Some(Ordering::Less));
+                assert_eq!(base.partial_cmp(&F64(OrderedFloat::from(2.0))), Some(Ordering::Less));
                 assert_eq!(base.partial_cmp(&I8(2)), Some(Ordering::Less));
                 assert_eq!(base.partial_cmp(&I16(2)), Some(Ordering::Less));
                 assert_eq!(base.partial_cmp(&I32(2)), Some(Ordering::Less));

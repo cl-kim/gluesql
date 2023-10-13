@@ -28,7 +28,7 @@ impl TryFrom<&Literal<'_>> for Value {
             Literal::Number(v) => v
                 .to_i64()
                 .map(Value::I64)
-                .or_else(|| v.to_f64().map(Value::F64))
+                .or_else(|| v.to_f64().map(OrderedFloat::from).map(Value::F64))
                 .ok_or_else(|| ValueError::FailedToParseNumber.into()),
             Literal::Boolean(v) => Ok(Value::Bool(*v)),
             Literal::Text(v) => Ok(Value::Str(v.as_ref().to_owned())),
@@ -111,7 +111,7 @@ impl Value {
             (Value::U64(l), Literal::Number(r)) => l.partial_cmp(&r.to_u64()?),
             (Value::U128(l), Literal::Number(r)) => l.partial_cmp(&r.to_u128()?),
             (Value::F32(l), Literal::Number(r)) => l.into_inner().partial_cmp(&r.to_f32()?),
-            (Value::F64(l), Literal::Number(r)) => l.partial_cmp(&r.to_f64()?),
+            (Value::F64(l), Literal::Number(r)) => l.into_inner().partial_cmp(&r.to_f64()?),
             (Value::Decimal(l), Literal::Number(r)) => {
                 BigDecimal::new(l.mantissa().into(), l.scale() as i64).partial_cmp(r)
             }
@@ -184,6 +184,7 @@ impl Value {
                 .ok_or_else(|| ValueError::UnreachableNumberParsing.into()),
             (DataType::Float, Literal::Number(v)) => v
                 .to_f64()
+                .map(OrderedFloat::from)
                 .map(Value::F64)
                 .ok_or_else(|| ValueError::UnreachableNumberParsing.into()),
             (DataType::Text, Literal::Text(v)) => Ok(Value::Str(v.to_string())),
@@ -405,15 +406,16 @@ impl Value {
             }
             (DataType::Float, Literal::Text(v)) => v
                 .parse::<f64>()
+                .map(OrderedFloat::from)
                 .map(Value::F64)
                 .map_err(|_| ValueError::LiteralCastFromTextToFloatFailed(v.to_string()).into()),
-            (DataType::Float, Literal::Number(v)) => v.to_f64().map(Value::F64).ok_or_else(|| {
+            (DataType::Float, Literal::Number(v)) => v.to_f64().map(OrderedFloat::from).map(Value::F64).ok_or_else(|| {
                 ValueError::UnreachableLiteralCastFromNumberToFloat(v.to_string()).into()
             }),
             (DataType::Float, Literal::Boolean(v)) => {
                 let v = if *v { 1.0 } else { 0.0 };
 
-                Ok(Value::F64(v))
+                Ok(Value::F64(OrderedFloat::from(v)))
             }
             (DataType::Decimal, Literal::Text(v)) => v
                 .parse::<Decimal>()
@@ -556,7 +558,7 @@ mod tests {
         assert!(Value::U64(64).evaluate_eq_with_literal(num!("64")));
         assert!(Value::U128(64).evaluate_eq_with_literal(num!("64")));
         assert!(Value::F32(OrderedFloat::from(7.123)).evaluate_eq_with_literal(num!("7.123")));
-        assert!(Value::F64(7.123).evaluate_eq_with_literal(num!("7.123")));
+        assert!(Value::F64(OrderedFloat::from(7.123)).evaluate_eq_with_literal(num!("7.123")));
         assert!(Value::Str("Hello".to_owned()).evaluate_eq_with_literal(text!("Hello")));
         assert!(Value::Bytea(bytea()).evaluate_eq_with_literal(&Literal::Bytea(bytea())));
         assert!(inet("127.0.0.1").evaluate_eq_with_literal(text!("127.0.0.1")));
@@ -597,7 +599,7 @@ mod tests {
         test(Value::U64(10), num(10), Some(Ordering::Equal));
         test(Value::U128(10), num(10), Some(Ordering::Equal));
         test(Value::F32(OrderedFloat::from(10.0)), num(10), Some(Ordering::Equal));
-        test(Value::F64(10.0), num(10), Some(Ordering::Equal));
+        test(Value::F64(OrderedFloat::from(10.0)), num(10), Some(Ordering::Equal));
         test(
             Value::Decimal(Decimal::new(215, 2)),
             num(3),
@@ -749,7 +751,7 @@ mod tests {
             num!("123456789"),
             Value::F32(OrderedFloat::from(123456789.0_f32))
         );
-        test!(DataType::Float, num!("123456789"), Value::F64(123456789.0));
+        test!(DataType::Float, num!("123456789"), Value::F64(OrderedFloat::from(123456789.0)));
         test!(
             DataType::Text,
             text!("Good!"),
@@ -882,7 +884,7 @@ mod tests {
         test!(&Literal::Bytea(bytea("1234")), Value::Bytea(bytea("1234")));
         test!(num!("1234567890"), Value::I64(1234567890));
         test!(num!("1.0"), Value::F32(OrderedFloat::from(1.0_f32)));
-        test!(num!("1.0"), Value::F64(1.0));
+        test!(num!("1.0"), Value::F64(OrderedFloat::from(1.0)));
         test!(&Literal::Boolean(false), Value::Bool(false));
         assert!(matches!(Value::try_from(&Literal::Null), Ok(Value::Null)))
     }
@@ -1011,10 +1013,10 @@ mod tests {
             Value::F32(OrderedFloat::from(0.0_f32))
         );
 
-        test!(DataType::Float, text!("12345.6789"), Value::F64(12345.6789));
-        test!(DataType::Float, num!("123456.789"), Value::F64(123456.789));
-        test!(DataType::Float, Literal::Boolean(true), Value::F64(1.0));
-        test!(DataType::Float, Literal::Boolean(false), Value::F64(0.0));
+        test!(DataType::Float, text!("12345.6789"), Value::F64(OrderedFloat::from(12345.6789)));
+        test!(DataType::Float, num!("123456.789"), Value::F64(OrderedFloat::from(123456.789)));
+        test!(DataType::Float, Literal::Boolean(true), Value::F64(OrderedFloat::from(1.0)));
+        test!(DataType::Float, Literal::Boolean(false), Value::F64(OrderedFloat::from(0.0)));
         test!(
             DataType::Text,
             num!("1234567890"),

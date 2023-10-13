@@ -27,7 +27,7 @@ impl PartialEq<Value> for OrderedFloat<f32> {
             U64(rhs) => (lhs - (rhs as f32)).abs() < f32::EPSILON,
             U128(rhs) => (lhs - (rhs as f32)).abs() < f32::EPSILON,
             F32(rhs) => (lhs - rhs.into_inner()).abs() < f32::EPSILON,
-            F64(rhs) => (lhs - rhs as f32).abs() < f32::EPSILON,
+            F64(rhs) => (lhs - rhs.into_inner() as f32).abs() < f32::EPSILON,
             Decimal(rhs) => Decimal::from_f32_retain(lhs)
                 .map(|x| rhs == x)
                 .unwrap_or(false),
@@ -49,7 +49,7 @@ impl PartialOrd<Value> for OrderedFloat<f32> {
             U32(rhs) => self.into_inner().partial_cmp(&(rhs as f32)),
             U64(rhs) => self.into_inner().partial_cmp(&(rhs as f32)),
             U128(rhs) => self.into_inner().partial_cmp(&(rhs as f32)),
-            F64(rhs) => self.into_inner().partial_cmp(&(rhs as f32)),
+            F64(rhs) => self.into_inner().partial_cmp(&(rhs.into_inner() as f32)),
             F32(rhs) => self.partial_cmp(&rhs),
             Decimal(rhs) => Decimal::from_f32_retain(f32::from(*self))
                 .map(|x| x.partial_cmp(&rhs))
@@ -76,7 +76,7 @@ impl TryBinaryOperator  for OrderedFloat<f32> {
             U32(rhs) => Ok(F32(lhs + rhs as f32)),
             U64(rhs) => Ok(F32(lhs + rhs as f32)),
             U128(rhs) => Ok(F32(lhs + rhs as f32)),
-            F64(rhs) => Ok(F32(lhs + rhs as f32)),
+            F64(rhs) => Ok(F32(lhs + rhs.into_inner() as f32)),
             F32(rhs) => Ok(F32(lhs + rhs)),
             Decimal(rhs) => Decimal::from_f32_retain(*lhs)
                 .map(|x| Ok(Decimal(x + rhs)))
@@ -107,7 +107,7 @@ impl TryBinaryOperator  for OrderedFloat<f32> {
             U32(rhs) => Ok(F32(lhs - rhs as f32)),
             U64(rhs) => Ok(F32(lhs - rhs as f32)),
             U128(rhs) => Ok(F32(lhs - rhs as f32)),
-            F64(rhs) => Ok(F32(lhs - rhs as f32)),
+            F64(rhs) => Ok(F32(lhs - rhs.into_inner() as f32)),
             F32(rhs) => Ok(F32(lhs - rhs)),
             Decimal(rhs) => Decimal::from_f32_retain(*lhs)
                 .map(|x| Ok(Decimal(x - rhs)))
@@ -138,7 +138,7 @@ impl TryBinaryOperator  for OrderedFloat<f32> {
             U32(rhs) => Ok(F32(lhs * rhs as f32)),
             U64(rhs) => Ok(F32(lhs * rhs as f32)),
             U128(rhs) => Ok(F32(lhs * rhs as f32)),
-            F64(rhs) => Ok(F32(lhs * rhs as f32)),
+            F64(rhs) => Ok(F32(lhs * rhs.into_inner() as f32)),
             F32(rhs) => Ok(F32(lhs * rhs)),
             Interval(rhs) => Ok(Interval(lhs.into_inner() * rhs)),
             Decimal(rhs) => Decimal::from_f32_retain(*lhs)
@@ -170,7 +170,7 @@ impl TryBinaryOperator  for OrderedFloat<f32> {
             U32(rhs) => Ok(F32(lhs / rhs as f32)),
             U64(rhs) => Ok(F32(lhs / rhs as f32)),
             U128(rhs) => Ok(F32(lhs / rhs as f32)),
-            F64(rhs) => Ok(F32(lhs / rhs as f32)),
+            F64(rhs) => Ok(F32(lhs / rhs.into_inner() as f32)),
             F32(rhs) => Ok(F32(lhs / rhs)),
             Decimal(rhs) => Decimal::from_f32_retain(*lhs)
                 .map(|x| Ok(Decimal(x * rhs)))
@@ -201,7 +201,7 @@ impl TryBinaryOperator  for OrderedFloat<f32> {
             U32(rhs) => Ok(F32(lhs % rhs as f32)),
             U64(rhs) => Ok(F32(lhs % rhs as f32)),
             U128(rhs) => Ok(F32(lhs % rhs as f32)),
-            F64(rhs) => Ok(F32(lhs % rhs as f32)),
+            F64(rhs) => Ok(F32(lhs % rhs.into_inner() as f32)),
             F32(rhs) => Ok(F32(lhs % rhs)),
             Decimal(rhs) => match Decimal::from_f32_retain(*lhs) {
                 Some(x) => x
@@ -252,7 +252,7 @@ mod tests {
         assert_eq!(base, U32(1));
         assert_eq!(base, U64(1));
         assert_eq!(base, U128(1));
-        assert_eq!(base, F64(1.0));
+        assert_eq!(base, F64(OrderedFloat::from(1.0)));
         assert_eq!(base, F32(OrderedFloat::from(1.0_f32)));
         assert_eq!(base, Decimal(Decimal::from(1)));
 
@@ -273,7 +273,7 @@ mod tests {
         assert_eq!(base.partial_cmp(&U32(1)), Some(Ordering::Equal));
         assert_eq!(base.partial_cmp(&U64(1)), Some(Ordering::Equal));
         assert_eq!(base.partial_cmp(&U128(1)), Some(Ordering::Equal));
-        assert_eq!(base.partial_cmp(&F64(1.0)), Some(Ordering::Equal));
+        assert_eq!(base.partial_cmp(&F64(OrderedFloat::from(1.0))), Some(Ordering::Equal));
         assert_eq!(base.partial_cmp(&F32(OrderedFloat::from(1.0_f32))), Some(Ordering::Equal));
         assert_eq!(
             base.partial_cmp(&Decimal(Decimal::ONE)),
@@ -297,7 +297,7 @@ mod tests {
         assert!(matches!(base.try_add(&U32(1)),Ok(F32(x)) if (x-2.0).abs() < f32::EPSILON));
         assert!(matches!(base.try_add(&U64(1)),Ok(F32(x)) if (x-2.0).abs() < f32::EPSILON));
         assert!(matches!(base.try_add(&U128(1)),Ok(F32(x)) if (x-2.0).abs()<f32::EPSILON));
-        assert!(matches!(base.try_add(&F64(1.0)), Ok(F32(x)) if (x - 2.0).abs() < f32::EPSILON ));
+        assert!(matches!(base.try_add(&F64(OrderedFloat::from(1.0))), Ok(F32(x)) if (x - 2.0).abs() < f32::EPSILON ));
         assert!(
             matches!(base.try_add(&F32(OrderedFloat::from(1.0_f32))), Ok(F32(x)) if (x - 2.0).abs() < f32::EPSILON )
         );
@@ -353,7 +353,7 @@ mod tests {
         );
 
         assert!(
-            matches!(base.try_subtract(&F64(1.0)), Ok(F32(x)) if (x - 0.0).abs() < f32::EPSILON )
+            matches!(base.try_subtract(&F64(OrderedFloat::from(1.0))), Ok(F32(x)) if (x - 0.0).abs() < f32::EPSILON )
         );
         assert!(
             matches!(base.try_subtract(&F32(OrderedFloat::from(1.0_f32))), Ok(F32(x)) if (x - 0.0).abs() < f32::EPSILON )
@@ -408,7 +408,7 @@ mod tests {
             matches!(base.try_multiply(&U128(1)), Ok(F32(x)) if (x - 1.0).abs() < f32::EPSILON )
         );
         assert!(
-            matches!(base.try_multiply(&F64(1.0)), Ok(F32(x)) if (x - 1.0).abs() < f32::EPSILON )
+            matches!(base.try_multiply(&F64(OrderedFloat::from(1.0))), Ok(F32(x)) if (x - 1.0).abs() < f32::EPSILON )
         );
         assert!(
             matches!(base.try_multiply(&F32(OrderedFloat::from(1.0_f32))), Ok(F32(x)) if (x - 1.0).abs() < f32::EPSILON )
@@ -448,7 +448,7 @@ mod tests {
         assert!(matches!(base.try_divide(&U128(1)), Ok(F32(x)) if (x - 1.0).abs() < f32::EPSILON ));
 
         assert!(
-            matches!(base.try_divide(&F64(1.0)), Ok(F32(x)) if (x - 1.0).abs() < f32::EPSILON )
+            matches!(base.try_divide(&F64(OrderedFloat::from(1.0))), Ok(F32(x)) if (x - 1.0).abs() < f32::EPSILON )
         );
         assert!(
             matches!(base.try_divide(&F32(OrderedFloat::from(1.0_f32))), Ok(F32(x)) if (x - 1.0).abs() < f32::EPSILON )
@@ -488,7 +488,7 @@ mod tests {
         assert!(matches!(base.try_modulo(&U128(1)), Ok(F32(x)) if (x - 0.0).abs() < f32::EPSILON ));
 
         assert!(
-            matches!(base.try_modulo(&F64(1.0)), Ok(F32(x)) if (x - 0.0).abs() < f32::EPSILON )
+            matches!(base.try_modulo(&F64(OrderedFloat::from(1.0))), Ok(F32(x)) if (x - 0.0).abs() < f32::EPSILON )
         );
         assert!(
             matches!(base.try_modulo(&F32(OrderedFloat::from(1.0_f32))), Ok(F32(x)) if (x - 0.0).abs() < f32::EPSILON )

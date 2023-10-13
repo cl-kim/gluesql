@@ -19,6 +19,7 @@ use {
         future::{ready, try_join_all},
         stream::{self, StreamExt, TryStreamExt},
     },
+    ordered_float::OrderedFloat,
     im_rc::HashMap,
     std::{borrow::Cow, ops::ControlFlow, rc::Rc},
 };
@@ -494,7 +495,7 @@ async fn evaluate_function<'a, 'b: 'a, 'c: 'a, T: GStore>(
         Function::Floor(expr) => f::floor(name, eval(expr).await?),
         Function::Radians(expr) => f::radians(name, eval(expr).await?),
         Function::Degrees(expr) => f::degrees(name, eval(expr).await?),
-        Function::Pi() => return Ok(Evaluated::Value(Value::F64(std::f64::consts::PI))),
+        Function::Pi() => return Ok(Evaluated::Value(Value::F64(OrderedFloat::from(std::f64::consts::PI)))),
         Function::Exp(expr) => f::exp(name, eval(expr).await?),
         Function::Log { antilog, base } => {
             let antilog = eval(antilog).await?;

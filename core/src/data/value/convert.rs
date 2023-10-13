@@ -35,7 +35,7 @@ macro_rules! try_from_owned_value {
 }
 
 try_from_owned_value!(
-    bool, i8, i16, i32, i64, i128, OrderedFloat<f32>, f64, u8, u16, u32, u64, u128, usize, Decimal
+    bool, i8, i16, i32, i64, i128, OrderedFloat<f32>, OrderedFloat<f64>, u8, u16, u32, u64, u128, usize, Decimal
 );
 
 impl From<&Value> for String {
@@ -777,13 +777,13 @@ impl TryFrom<&Value> for OrderedFloat<f32> {
     }
 }
 
-impl TryFrom<&Value> for f64 {
+impl TryFrom<&Value> for OrderedFloat<f64> {
     type Error = ConvertError;
 
-    fn try_from(v: &Value) -> Result<f64> {
+    fn try_from(v: &Value) -> Result<OrderedFloat<f64>> {
         macro_rules! num_to_f64 {
             ($num: ident) => {
-                $num.to_f64().ok_or_else(|| ConvertError {
+                $num.to_f64().map(OrderedFloat::from).ok_or_else(|| ConvertError {
                     value: v.clone(),
                     data_type: DataType::Float,
                 })?
@@ -793,9 +793,9 @@ impl TryFrom<&Value> for f64 {
         Ok(match v {
             Value::Bool(value) => {
                 if *value {
-                    1.0
+                    OrderedFloat::from(1.0)
                 } else {
-                    0.0
+                    OrderedFloat::from(0.0)
                 }
             }
             Value::I8(value) => num_to_f64!(value),
@@ -810,7 +810,7 @@ impl TryFrom<&Value> for f64 {
             Value::U128(value) => num_to_f64!(value),
             Value::F32(value) => num_to_f64!(value),
             Value::F64(value) => *value,
-            Value::Str(value) => value.parse::<f64>().map_err(|_| ConvertError {
+            Value::Str(value) => value.parse::<OrderedFloat<f64>>().map_err(|_| ConvertError {
                 value: v.clone(),
                 data_type: DataType::Float,
             })?,
@@ -918,7 +918,7 @@ impl TryFrom<&Value> for Decimal {
             Value::U64(value) => num_to_decimal!(*value, from_u64),
             Value::U128(value) => num_to_decimal!(*value, from_u128),
             Value::F32(value) => num_to_decimal!(value.into_inner(), from_f32),
-            Value::F64(value) => num_to_decimal!(*value, from_f64),
+            Value::F64(value) => num_to_decimal!(value.into_inner(), from_f64),
             Value::Str(value) => Decimal::from_str(value).map_err(|_| ConvertError {
                 value: v.clone(),
                 data_type: DataType::Decimal,
@@ -1108,7 +1108,7 @@ mod tests {
         test!(Value::U64(122), "122");
         test!(Value::U128(122), "122");
         test!(Value::F32(OrderedFloat::from(123456.1_f32)), "123456.1");
-        test!(Value::F64(1234567890.0987), "1234567890.0987");
+        test!(Value::F64(OrderedFloat::from(1234567890.0987)), "1234567890.0987");
         test!(Value::Date(date(2021, 11, 20)), "2021-11-20");
         test!(
             Value::Timestamp(timestamp(2021, 11, 20, 10, 0, 0, 0)),
@@ -1181,8 +1181,8 @@ mod tests {
 
         test!(Value::F32(OrderedFloat::from(1.0_f32)), Ok(true));
         test!(Value::F32(OrderedFloat::from(0.0_f32)), Ok(false));
-        test!(Value::F64(1.0), Ok(true));
-        test!(Value::F64(0.0), Ok(false));
+        test!(Value::F64(OrderedFloat::from(1.0)), Ok(true));
+        test!(Value::F64(OrderedFloat::from(0.0)), Ok(false));
         test!(Value::Str("true".to_owned()), Ok(true));
         test!(Value::Str("false".to_owned()), Ok(false));
         test!(Value::Decimal(Decimal::new(10, 1)), Ok(true));
@@ -1199,7 +1199,7 @@ mod tests {
         err!(Value::U64(3));
         err!(Value::U128(3));
         err!(Value::F32(OrderedFloat::from(2.0_f32)));
-        err!(Value::F64(2.0));
+        err!(Value::F64(OrderedFloat::from(2.0)));
         err!(Value::Decimal(Decimal::new(2, 0)));
         err!(Value::Str("text".to_owned()));
         err!(Value::Bytea(Vec::new()));
@@ -1249,7 +1249,7 @@ mod tests {
         test!(Value::U64(122), Ok(122));
         test!(Value::U128(122), Ok(122));
         test!(Value::F32(OrderedFloat::from(122.0_f32)), Ok(122));
-        test!(Value::F64(122.0), Ok(122));
+        test!(Value::F64(OrderedFloat::from(122.0)), Ok(122));
         test!(Value::Str("122".to_owned()), Ok(122));
         test!(Value::Decimal(Decimal::new(123, 0)), Ok(123));
 
@@ -1263,7 +1263,7 @@ mod tests {
         err!(Value::U64(128));
         err!(Value::U128(128));
         err!(Value::F32(OrderedFloat::from(128.0_f32)));
-        err!(Value::F64(128.0));
+        err!(Value::F64(OrderedFloat::from(128.0)));
         err!(Value::Decimal(Decimal::new(128, 0)));
         err!(Value::Str("text".to_owned()));
         err!(Value::Bytea(Vec::new()));
@@ -1314,8 +1314,8 @@ mod tests {
         test!(Value::U128(122), Ok(122));
         test!(Value::F32(OrderedFloat::from(122.0_f32)), Ok(122));
         test!(Value::F32(OrderedFloat::from(122.1_f32)), Ok(122));
-        test!(Value::F64(122.0), Ok(122));
-        test!(Value::F64(122.1), Ok(122));
+        test!(Value::F64(OrderedFloat::from(122.0)), Ok(122));
+        test!(Value::F64(OrderedFloat::from(122.1)), Ok(122));
         test!(Value::Str("122".to_owned()), Ok(122));
         test!(Value::Decimal(Decimal::new(122, 0)), Ok(122));
 
@@ -1329,7 +1329,7 @@ mod tests {
         err!(Value::U128(u128::MAX));
 
         err!(Value::F32(OrderedFloat::from(f32::MAX)));
-        err!(Value::F64(f64::MAX));
+        err!(Value::F64(OrderedFloat::from(f64::MAX)));
         err!(Value::Decimal(Decimal::new(i64::MAX, 0)));
         err!(Value::Str("text".to_owned()));
         err!(Value::Bytea(Vec::new()));
@@ -1381,8 +1381,8 @@ mod tests {
         test!(Value::I64(1234567890), Ok(1234567890));
         test!(Value::F32(OrderedFloat::from(1234567890.0_f32)), Ok(1234567890.0_f32 as i32));
         test!(Value::F32(OrderedFloat::from(1234567890.1_f32)), Ok(1234567890.1_f32 as i32));
-        test!(Value::F64(1234567890.0), Ok(1234567890));
-        test!(Value::F64(1234567890.1), Ok(1234567890));
+        test!(Value::F64(OrderedFloat::from(1234567890.0)), Ok(1234567890));
+        test!(Value::F64(OrderedFloat::from(1234567890.1)), Ok(1234567890));
         test!(Value::Str("1234567890".to_owned()), Ok(1234567890));
         test!(Value::Decimal(Decimal::new(1234567890, 0)), Ok(1234567890));
 
@@ -1394,7 +1394,7 @@ mod tests {
         err!(Value::U128(u128::MAX));
 
         err!(Value::F32(OrderedFloat::from(f32::MAX)));
-        err!(Value::F64(f64::MAX));
+        err!(Value::F64(OrderedFloat::from(f64::MAX)));
 
         err!(Value::Decimal(Decimal::new(i64::MAX, 0)));
         err!(Value::Str("text".to_owned()));
@@ -1447,8 +1447,8 @@ mod tests {
         test!(Value::I64(1234567890), Ok(1234567890));
         test!(Value::F32(OrderedFloat::from(1234567890.0_f32)), Ok(1234567890.0_f32 as i64));
         test!(Value::F32(OrderedFloat::from(1234567890.1_f32)), Ok(1234567890.1_f32 as i64));
-        test!(Value::F64(1234567890.0), Ok(1234567890));
-        test!(Value::F64(1234567890.1), Ok(1234567890));
+        test!(Value::F64(OrderedFloat::from(1234567890.0)), Ok(1234567890));
+        test!(Value::F64(OrderedFloat::from(1234567890.1)), Ok(1234567890));
         test!(Value::Str("1234567890".to_owned()), Ok(1234567890));
         test!(Value::Decimal(Decimal::new(1234567890, 0)), Ok(1234567890));
 
@@ -1458,7 +1458,7 @@ mod tests {
         err!(Value::U128(u128::MAX));
 
         err!(Value::F32(OrderedFloat::from(f32::MAX)));
-        err!(Value::F64(f64::MAX));
+        err!(Value::F64(OrderedFloat::from(f64::MAX)));
 
         err!(Value::Str("text".to_owned()));
         err!(Value::Bytea(Vec::new()));
@@ -1510,15 +1510,15 @@ mod tests {
         test!(Value::I64(1234567890), Ok(1234567890));
         test!(Value::F32(OrderedFloat::from(1234567890.0_f32)), Ok(1234567890.0_f32 as i128));
         test!(Value::F32(OrderedFloat::from(1234567890.9_f32)), Ok(1234567890.9_f32 as i128));
-        test!(Value::F64(1234567890.0), Ok(1234567890));
-        test!(Value::F64(1234567890.9), Ok(1234567890));
+        test!(Value::F64(OrderedFloat::from(1234567890.0)), Ok(1234567890));
+        test!(Value::F64(OrderedFloat::from(1234567890.9)), Ok(1234567890));
         test!(Value::Str("1234567890".to_owned()), Ok(1234567890));
         test!(Value::Decimal(Decimal::new(1234567890, 0)), Ok(1234567890));
 
         err!(Value::U128(u128::MAX));
 
         err!(Value::F32(OrderedFloat::from(f32::MAX)));
-        err!(Value::F64(f64::MAX));
+        err!(Value::F64(OrderedFloat::from(f64::MAX)));
 
         err!(Value::Str("text".to_owned()));
         err!(Value::Bytea(Vec::new()));
@@ -1569,8 +1569,8 @@ mod tests {
         test!(Value::U128(122), Ok(122));
         test!(Value::F32(OrderedFloat::from(122.0_f32)), Ok(122));
         test!(Value::F32(OrderedFloat::from(122.9_f32)), Ok(122));
-        test!(Value::F64(122.0), Ok(122));
-        test!(Value::F64(122.9), Ok(122));
+        test!(Value::F64(OrderedFloat::from(122.0)), Ok(122));
+        test!(Value::F64(OrderedFloat::from(122.9)), Ok(122));
         test!(Value::Str("122".to_owned()), Ok(122));
         test!(Value::Decimal(Decimal::new(123, 0)), Ok(123));
 
@@ -1586,7 +1586,7 @@ mod tests {
         err!(Value::U128(256));
 
         err!(Value::F32(OrderedFloat::from(256.0_f32)));
-        err!(Value::F64(256.0));
+        err!(Value::F64(OrderedFloat::from(256.0)));
 
         err!(Value::Decimal(Decimal::new(256, 0)));
         err!(Value::Str("text".to_owned()));
@@ -1639,8 +1639,8 @@ mod tests {
         test!(Value::U128(122), Ok(122));
         test!(Value::F32(OrderedFloat::from(122.0_f32)), Ok(122));
         test!(Value::F32(OrderedFloat::from(122.1_f32)), Ok(122));
-        test!(Value::F64(122.0), Ok(122));
-        test!(Value::F64(122.1), Ok(122));
+        test!(Value::F64(OrderedFloat::from(122.0)), Ok(122));
+        test!(Value::F64(OrderedFloat::from(122.1)), Ok(122));
         test!(Value::Str("122".to_owned()), Ok(122));
         test!(Value::Decimal(Decimal::new(122, 0)), Ok(122));
 
@@ -1653,7 +1653,7 @@ mod tests {
         err!(Value::U128(65536));
 
         err!(Value::F32(OrderedFloat::from(65536.0_f32)));
-        err!(Value::F64(65536.0));
+        err!(Value::F64(OrderedFloat::from(65536.0)));
 
         err!(Value::Decimal(Decimal::new(65536, 0)));
         err!(Value::Str("text".to_owned()));
@@ -1704,8 +1704,8 @@ mod tests {
         test!(Value::U128(122), Ok(122));
         test!(Value::F32(OrderedFloat::from(122.0_f32)), Ok(122));
         test!(Value::F32(OrderedFloat::from(122.1_f32)), Ok(122));
-        test!(Value::F64(122.0), Ok(122));
-        test!(Value::F64(122.1), Ok(122));
+        test!(Value::F64(OrderedFloat::from(122.0)), Ok(122));
+        test!(Value::F64(OrderedFloat::from(122.1)), Ok(122));
         test!(Value::Str("122".to_owned()), Ok(122));
         test!(Value::Decimal(Decimal::new(122, 0)), Ok(122));
 
@@ -1716,7 +1716,7 @@ mod tests {
         err!(Value::U128(u128::MAX));
 
         err!(Value::F32(OrderedFloat::from(f32::MAX)));
-        err!(Value::F64(f64::MAX));
+        err!(Value::F64(OrderedFloat::from(f64::MAX)));
 
         err!(Value::Decimal(Decimal::new(i64::MAX, 0)));
         err!(Value::Str("text".to_owned()));
@@ -1772,8 +1772,8 @@ mod tests {
         test!(Value::U128(122), Ok(122));
         test!(Value::F32(OrderedFloat::from(122.0_f32)), Ok(122));
         test!(Value::F32(OrderedFloat::from(122.1_f32)), Ok(122));
-        test!(Value::F64(122.0), Ok(122));
-        test!(Value::F64(122.1), Ok(122));
+        test!(Value::F64(OrderedFloat::from(122.0)), Ok(122));
+        test!(Value::F64(OrderedFloat::from(122.1)), Ok(122));
         test!(Value::Str("122".to_owned()), Ok(122));
         test!(Value::Decimal(Decimal::new(122, 0)), Ok(122));
 
@@ -1782,7 +1782,7 @@ mod tests {
         err!(Value::U128(u128::MAX));
 
         err!(Value::F32(OrderedFloat::from(f32::MIN)));
-        err!(Value::F64(f64::MIN));
+        err!(Value::F64(OrderedFloat::from(f64::MIN)));
 
         err!(Value::Decimal(Decimal::new(i64::MIN, 0)));
         err!(Value::Str("text".to_owned()));
@@ -1834,13 +1834,13 @@ mod tests {
         test!(Value::U128(122), Ok(122));
         test!(Value::F32(OrderedFloat::from(122.0_f32)), Ok(122));
         test!(Value::F32(OrderedFloat::from(122.1_f32)), Ok(122));
-        test!(Value::F64(122.0), Ok(122));
-        test!(Value::F64(122.1), Ok(122));
+        test!(Value::F64(OrderedFloat::from(122.0)), Ok(122));
+        test!(Value::F64(OrderedFloat::from(122.1)), Ok(122));
         test!(Value::Str("122".to_owned()), Ok(122));
         test!(Value::Decimal(Decimal::new(122, 0)), Ok(122));
 
         err!(Value::F32(OrderedFloat::from(f32::MIN)));
-        err!(Value::F64(f64::MIN));
+        err!(Value::F64(OrderedFloat::from(f64::MIN)));
 
         err!(Value::Decimal(Decimal::new(i64::MIN, 0)));
         err!(Value::Str("text".to_owned()));
@@ -1899,7 +1899,7 @@ mod tests {
         test!(Value::U64(122), Ok(OrderedFloat::from(122.0_f32)));
         test!(Value::U128(122), Ok(OrderedFloat::from(122.0_f32)));
         test!(Value::I64(1234567890), Ok(OrderedFloat::from(1234567890.0_f32)));
-        test!(Value::F64(1234567890.1), Ok(OrderedFloat::from(1234567890.1_f32)));
+        test!(Value::F64(OrderedFloat::from(1234567890.1)), Ok(OrderedFloat::from(1234567890.1_f32)));
         test!(Value::F32(OrderedFloat::from(1234567890.1_f32)), Ok(OrderedFloat::from(1234567890.1_f32)));
         test!(Value::Str("1234567890.1".to_owned()), Ok(OrderedFloat::from(1234567890.1_f32)));
         test!(
@@ -1924,8 +1924,8 @@ mod tests {
     fn try_into_f64() {
         macro_rules! test {
             ($from: expr, $to: expr) => {
-                assert_eq!((&$from).try_into() as Result<f64>, $to);
-                assert_eq!(f64::try_from(&$from), $to);
+                assert_eq!((&$from).try_into() as Result<OrderedFloat<f64>>, $to);
+                assert_eq!(OrderedFloat::<f64>::try_from(&$from), $to);
             };
         }
 
@@ -1941,25 +1941,25 @@ mod tests {
             };
         }
 
-        test!(Value::Bool(true), Ok(1.0));
-        test!(Value::Bool(false), Ok(0.0));
-        test!(Value::I8(122), Ok(122.0));
-        test!(Value::I16(122), Ok(122.0));
-        test!(Value::I32(122), Ok(122.0));
-        test!(Value::I64(122), Ok(122.0));
-        test!(Value::I128(122), Ok(122.0));
-        test!(Value::U8(122), Ok(122.0));
-        test!(Value::U16(122), Ok(122.0));
-        test!(Value::U32(122), Ok(122.0));
-        test!(Value::U64(122), Ok(122.0));
-        test!(Value::U128(122), Ok(122.0));
-        test!(Value::I64(1234567890), Ok(1234567890.0));
-        test!(Value::F32(OrderedFloat::from(1234567890.1_f32)), Ok(1234567890.1_f32 as f64));
-        test!(Value::F64(1234567890.1), Ok(1234567890.1));
-        test!(Value::Str("1234567890.1".to_owned()), Ok(1234567890.1));
+        test!(Value::Bool(true), Ok(OrderedFloat::from(1.0)));
+        test!(Value::Bool(false), Ok(OrderedFloat::from(0.0)));
+        test!(Value::I8(122), Ok(OrderedFloat::from(122.0)));
+        test!(Value::I16(122), Ok(OrderedFloat::from(122.0)));
+        test!(Value::I32(122), Ok(OrderedFloat::from(122.0)));
+        test!(Value::I64(122), Ok(OrderedFloat::from(122.0)));
+        test!(Value::I128(122), Ok(OrderedFloat::from(122.0)));
+        test!(Value::U8(122), Ok(OrderedFloat::from(122.0)));
+        test!(Value::U16(122), Ok(OrderedFloat::from(122.0)));
+        test!(Value::U32(122), Ok(OrderedFloat::from(122.0)));
+        test!(Value::U64(122), Ok(OrderedFloat::from(122.0)));
+        test!(Value::U128(122), Ok(OrderedFloat::from(122.0)));
+        test!(Value::I64(1234567890), Ok(OrderedFloat::from(1234567890.0)));
+        test!(Value::F32(OrderedFloat::from(1234567890.1_f32)), Ok(OrderedFloat::from(1234567890.1_f32 as f64)));
+        test!(Value::F64(OrderedFloat::from(1234567890.1)), Ok(OrderedFloat::from(1234567890.1)));
+        test!(Value::Str("1234567890.1".to_owned()), Ok(OrderedFloat::from(1234567890.1)));
         test!(
             Value::Decimal(Decimal::new(12345678901, 1)),
-            Ok(1234567890.1)
+            Ok(OrderedFloat::from(1234567890.1))
         );
 
         err!(Value::Str("text".to_owned()));
@@ -2013,8 +2013,8 @@ mod tests {
         test!(Value::I64(1234567890), Ok(1234567890));
         test!(Value::F32(OrderedFloat::from(1234567890.0_f32)), Ok(1234567890.0_f32 as usize));
         test!(Value::F32(OrderedFloat::from(1234567890.1_f32)), Ok(1234567890.1_f32 as usize));
-        test!(Value::F64(1234567890.0), Ok(1234567890));
-        test!(Value::F64(1234567890.1), Ok(1234567890));
+        test!(Value::F64(OrderedFloat::from(1234567890.0)), Ok(1234567890));
+        test!(Value::F64(OrderedFloat::from(1234567890.1)), Ok(1234567890));
         test!(Value::Str("1234567890".to_owned()), Ok(1234567890));
         test!(Value::Decimal(Decimal::new(1234567890, 0)), Ok(1234567890));
 
@@ -2023,7 +2023,7 @@ mod tests {
         err!(Value::U128(u128::MAX));
 
         err!(Value::F32(OrderedFloat::from(f32::MIN)));
-        err!(Value::F64(f64::MIN));
+        err!(Value::F64(OrderedFloat::from(f64::MIN)));
 
         err!(Value::Decimal(Decimal::new(i64::MIN, 0)));
         err!(Value::Str("text".to_owned()));
@@ -2075,8 +2075,8 @@ mod tests {
         test!(Value::U128(122), Ok(Decimal::new(122, 0)));
         test!(Value::F32(OrderedFloat::from(122.0_f32)), Ok(Decimal::new(122, 0)));
         test!(Value::F32(OrderedFloat::from(122.1_f32)), Ok(Decimal::new(1221, 1)));
-        test!(Value::F64(122.0), Ok(Decimal::new(122, 0)));
-        test!(Value::F64(122.1), Ok(Decimal::new(1221, 1)));
+        test!(Value::F64(OrderedFloat::from(122.0)), Ok(Decimal::new(122, 0)));
+        test!(Value::F64(OrderedFloat::from(122.1)), Ok(Decimal::new(1221, 1)));
         test!(Value::Str("122".to_owned()), Ok(Decimal::new(122, 0)));
         test!(
             Value::Decimal(Decimal::new(122, 0)),
@@ -2125,7 +2125,7 @@ mod tests {
         test!(Value::Str("2021-11-20".to_owned()), Ok(date(2021, 11, 20)));
 
         err!(Value::F32(OrderedFloat::from(1.0_f32)));
-        err!(Value::F64(1.0));
+        err!(Value::F64(OrderedFloat::from(1.0)));
     }
 
     #[test]
@@ -2153,7 +2153,7 @@ mod tests {
         test!(Value::Str("10:00:00".to_owned()), Ok(time(10, 0, 0, 0)));
 
         err!(Value::F32(OrderedFloat::from(1.0_f32)));
-        err!(Value::F64(1.0));
+        err!(Value::F64(OrderedFloat::from(1.0)));
     }
 
     #[test]
@@ -2192,7 +2192,7 @@ mod tests {
         );
 
         err!(Value::F32(OrderedFloat::from(1.0_f32)));
-        err!(Value::F64(1.0));
+        err!(Value::F64(OrderedFloat::from(1.0)));
     }
 
     #[test]

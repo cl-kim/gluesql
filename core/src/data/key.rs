@@ -140,7 +140,7 @@ impl TryFrom<Value> for Key {
             U64(v) => Ok(Key::U64(v)),
             U128(v) => Ok(Key::U128(v)),
             F32(v) => Ok(Key::F32(v)),
-            F64(v) => Ok(Key::F64(OrderedFloat(v))),
+            F64(v) => Ok(Key::F64(v)),
             Decimal(v) => Ok(Key::Decimal(v)),
             Str(v) => Ok(Key::Str(v)),
             Bytea(v) => Ok(Key::Bytea(v)),
@@ -181,7 +181,7 @@ impl From<Key> for Value {
             Key::U64(v) => Value::U64(v),
             Key::U128(v) => Value::U128(v),
             Key::F32(v) => Value::F32(v),
-            Key::F64(v) => Value::F64(v.0),
+            Key::F64(v) => Value::F64(v),
             Key::Decimal(v) => Value::Decimal(v),
             Key::Str(v) => Value::Str(v),
             Key::Bytea(v) => Value::Bytea(v),
@@ -861,7 +861,7 @@ mod tests {
         assert_eq!(Value::from(Key::U64(128)), Value::U64(128));
         assert_eq!(Value::from(Key::U128(128)), Value::U128(128));
         assert_eq!(Value::from(Key::F32(1.0.into())), Value::F32(1.0.into()));
-        assert_eq!(Value::from(Key::F64(1.0.into())), Value::F64(1.0));
+        assert_eq!(Value::from(Key::F64(1.0.into())), Value::F64(1.0.into()));
         assert_eq!(
             Value::from(Key::Decimal(Decimal::from_str("123.45").unwrap())),
             Value::Decimal(Decimal::from_str("123.45").unwrap())

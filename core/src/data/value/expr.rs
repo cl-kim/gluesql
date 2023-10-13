@@ -54,7 +54,7 @@ impl TryFrom<Value> for Expr {
                 BigDecimal::from_f32(v.into_inner()).ok_or(ValueToExprConversionFailure)?,
             )),
             Value::F64(v) => Expr::Literal(AstLiteral::Number(
-                BigDecimal::from_f64(v).ok_or(ValueToExprConversionFailure)?,
+                BigDecimal::from_f64(v.into_inner()).ok_or(ValueToExprConversionFailure)?,
             )),
             Value::Decimal(v) => Expr::Literal(AstLiteral::Number(
                 BigDecimal::from_f64(v.try_into().map_err(|_| ValueToExprConversionFailure)?)
@@ -212,7 +212,7 @@ mod tests {
             )))
         );
         assert_eq!(
-            Value::F64(64.4).try_into(),
+            Value::F64(OrderedFloat::from(64.4)).try_into(),
             Ok(Expr::Literal(AstLiteral::Number(
                 BigDecimal::from_f64(64.4).unwrap()
             )))

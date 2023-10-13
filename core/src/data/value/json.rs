@@ -5,6 +5,7 @@ use {
     core::str::FromStr,
     serde_json::{Map as JsonMap, Number as JsonNumber, Value as JsonValue},
     std::collections::HashMap,
+    ordered_float::OrderedFloat,
     uuid::Uuid,
 };
 
@@ -71,7 +72,7 @@ impl TryFrom<Value> for JsonValue {
                 .map(JsonValue::Number)
                 .map_err(|_| ValueError::UnreachableJsonNumberParseFailure(v.to_string()).into()),
             Value::F32(v) => Ok(v.into_inner().into()),
-            Value::F64(v) => Ok(v.into()),
+            Value::F64(v) => Ok(v.into_inner().into()),
             Value::Decimal(v) => JsonNumber::from_str(&v.to_string())
                 .map(JsonValue::Number)
                 .map_err(|_| ValueError::UnreachableJsonNumberParseFailure(v.to_string()).into()),
@@ -111,7 +112,10 @@ impl TryFrom<JsonValue> for Value {
                     return Ok(value);
                 }
 
-                v.as_f64().map(Value::F64).ok_or_else(|| {
+                v.as_f64()
+                    .map(OrderedFloat::from)
+                    .map(Value::F64)
+                    .ok_or_else(|| {
                     ValueError::UnreachableJsonNumberParseFailure(v.to_string()).into()
                 })
             }
@@ -199,7 +203,7 @@ mod tests {
             ))
         );
         assert_eq!(
-            Value::F64(1.23).try_into(),
+            Value::F64(OrderedFloat::from(1.23)).try_into(),
             Ok(JsonValue::Number(JsonNumber::from_f64(1.23).unwrap()))
         );
         assert_eq!(
@@ -290,7 +294,7 @@ mod tests {
         assert!(
             Value::try_from(JsonValue::Number(JsonNumber::from_f64(3.21).unwrap()))
                 .unwrap()
-                .evaluate_eq(&Value::F64(3.21))
+                .evaluate_eq(&Value::F64(OrderedFloat::from(3.21)))
         );
         assert!(Value::try_from(JsonValue::String("world".to_owned()))
             .unwrap()

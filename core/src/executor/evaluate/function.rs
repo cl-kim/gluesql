@@ -129,7 +129,7 @@ fn eval_to_float(name: &str, evaluated: Evaluated<'_>) -> ControlFlow<f64> {
     match evaluated.try_into().break_if_null()? {
         Value::I64(v) => Continue(v as f64),
         Value::F32(v) => Continue(v.into_inner() as f64),
-        Value::F64(v) => Continue(v),
+        Value::F64(v) => Continue(v.into_inner()),
         _ => Break(BreakCase::Err(
             EvaluateError::FunctionRequiresFloatValue(name.to_owned()).into(),
         )),
@@ -355,7 +355,7 @@ pub fn abs<'a>(name: String, n: Evaluated<'_>) -> ControlFlow<Evaluated<'a>> {
         Value::I128(v) => Value::I128(v.abs()),
         Value::Decimal(v) => Value::Decimal(v.abs()),
         Value::F32(v) => Value::F32(OrderedFloat::from(v.abs())),
-        Value::F64(v) => Value::F64(v.abs()),
+        Value::F64(v) => Value::F64(OrderedFloat::from(v.abs())),
         _ => {
             return Err(EvaluateError::FunctionRequiresFloatValue(name).into()).into_control_flow()
         }
@@ -395,40 +395,40 @@ pub fn power<'a>(
     let expr = eval_to_float(&name, expr)?;
     let power = eval_to_float(&name, power)?;
 
-    Continue(Evaluated::Value(Value::F64(expr.powf(power))))
+    Continue(Evaluated::Value(Value::F64(OrderedFloat::from(expr.powf(power)))))
 }
 
 pub fn ceil<'a>(name: String, n: Evaluated<'_>) -> ControlFlow<Evaluated<'a>> {
-    eval_to_float(&name, n).map(|n| Evaluated::Value(Value::F64(n.ceil())))
+    eval_to_float(&name, n).map(|n| Evaluated::Value(Value::F64(OrderedFloat::from(n.ceil()))))
 }
 
 pub fn rand<'a>(name: String, seed: Option<Evaluated<'_>>) -> ControlFlow<Evaluated<'a>> {
-    let seed = if let Some(v) = seed {
+    let seed : f64 = if let Some(v) = seed {
         StdRng::seed_from_u64(eval_to_float(&name, v)? as u64).gen()
     } else {
         rand::random()
     };
-    Continue(Evaluated::Value(Value::F64(seed)))
+    Continue(Evaluated::Value(Value::F64(OrderedFloat::from(seed))))
 }
 
 pub fn round<'a>(name: String, n: Evaluated<'_>) -> ControlFlow<Evaluated<'a>> {
-    eval_to_float(&name, n).map(|n| Evaluated::Value(Value::F64(n.round())))
+    eval_to_float(&name, n).map(|n| Evaluated::Value(Value::F64(OrderedFloat::from(n.round()))))
 }
 
 pub fn floor<'a>(name: String, n: Evaluated<'_>) -> ControlFlow<Evaluated<'a>> {
-    eval_to_float(&name, n).map(|n| Evaluated::Value(Value::F64(n.floor())))
+    eval_to_float(&name, n).map(|n| Evaluated::Value(Value::F64(OrderedFloat::from(n.floor()))))
 }
 
 pub fn radians<'a>(name: String, n: Evaluated<'_>) -> ControlFlow<Evaluated<'a>> {
-    eval_to_float(&name, n).map(|n| Evaluated::Value(Value::F64(n.to_radians())))
+    eval_to_float(&name, n).map(|n| Evaluated::Value(Value::F64(OrderedFloat::from(n.to_radians()))))
 }
 
 pub fn degrees<'a>(name: String, n: Evaluated<'_>) -> ControlFlow<Evaluated<'a>> {
-    eval_to_float(&name, n).map(|n| Evaluated::Value(Value::F64(n.to_degrees())))
+    eval_to_float(&name, n).map(|n| Evaluated::Value(Value::F64(OrderedFloat::from(n.to_degrees()))))
 }
 
 pub fn exp<'a>(name: String, n: Evaluated<'_>) -> ControlFlow<Evaluated<'a>> {
-    eval_to_float(&name, n).map(|n| Evaluated::Value(Value::F64(n.exp())))
+    eval_to_float(&name, n).map(|n| Evaluated::Value(Value::F64(OrderedFloat::from(n.exp()))))
 }
 
 pub fn log<'a>(
@@ -439,43 +439,43 @@ pub fn log<'a>(
     let antilog = eval_to_float(&name, antilog)?;
     let base = eval_to_float(&name, base)?;
 
-    Continue(Evaluated::Value(Value::F64(antilog.log(base))))
+    Continue(Evaluated::Value(Value::F64(OrderedFloat::from(antilog.log(base)))))
 }
 
 pub fn ln<'a>(name: String, n: Evaluated<'_>) -> ControlFlow<Evaluated<'a>> {
-    eval_to_float(&name, n).map(|n| Evaluated::Value(Value::F64(n.ln())))
+    eval_to_float(&name, n).map(|n| Evaluated::Value(Value::F64(OrderedFloat::from(n.ln()))))
 }
 
 pub fn log2<'a>(name: String, n: Evaluated<'_>) -> ControlFlow<Evaluated<'a>> {
-    eval_to_float(&name, n).map(|n| Evaluated::Value(Value::F64(n.log2())))
+    eval_to_float(&name, n).map(|n| Evaluated::Value(Value::F64(OrderedFloat::from(n.log2()))))
 }
 
 pub fn log10<'a>(name: String, n: Evaluated<'_>) -> ControlFlow<Evaluated<'a>> {
-    eval_to_float(&name, n).map(|n| Evaluated::Value(Value::F64(n.log10())))
+    eval_to_float(&name, n).map(|n| Evaluated::Value(Value::F64(OrderedFloat::from(n.log10()))))
 }
 
 pub fn sin<'a>(name: String, n: Evaluated<'_>) -> ControlFlow<Evaluated<'a>> {
-    eval_to_float(&name, n).map(|n| Evaluated::Value(Value::F64(n.sin())))
+    eval_to_float(&name, n).map(|n| Evaluated::Value(Value::F64(OrderedFloat::from(n.sin()))))
 }
 
 pub fn cos<'a>(name: String, n: Evaluated<'_>) -> ControlFlow<Evaluated<'a>> {
-    eval_to_float(&name, n).map(|n| Evaluated::Value(Value::F64(n.cos())))
+    eval_to_float(&name, n).map(|n| Evaluated::Value(Value::F64(OrderedFloat::from(n.cos()))))
 }
 
 pub fn tan<'a>(name: String, n: Evaluated<'_>) -> ControlFlow<Evaluated<'a>> {
-    eval_to_float(&name, n).map(|n| Evaluated::Value(Value::F64(n.tan())))
+    eval_to_float(&name, n).map(|n| Evaluated::Value(Value::F64(OrderedFloat::from(n.tan()))))
 }
 
 pub fn asin<'a>(name: String, n: Evaluated<'_>) -> ControlFlow<Evaluated<'a>> {
-    eval_to_float(&name, n).map(|n| Evaluated::Value(Value::F64(n.asin())))
+    eval_to_float(&name, n).map(|n| Evaluated::Value(Value::F64(OrderedFloat::from(n.asin()))))
 }
 
 pub fn acos<'a>(name: String, n: Evaluated<'_>) -> ControlFlow<Evaluated<'a>> {
-    eval_to_float(&name, n).map(|n| Evaluated::Value(Value::F64(n.acos())))
+    eval_to_float(&name, n).map(|n| Evaluated::Value(Value::F64(OrderedFloat::from(n.acos()))))
 }
 
 pub fn atan<'a>(name: String, n: Evaluated<'_>) -> ControlFlow<Evaluated<'a>> {
-    eval_to_float(&name, n).map(|n| Evaluated::Value(Value::F64(n.atan())))
+    eval_to_float(&name, n).map(|n| Evaluated::Value(Value::F64(OrderedFloat::from(n.atan()))))
 }
 
 // --- integer ---
@@ -929,7 +929,7 @@ pub fn point<'a>(name: String, x: Evaluated<'_>, y: Evaluated<'_>) -> ControlFlo
 
 pub fn get_x<'a>(name: String, expr: Evaluated<'_>) -> ControlFlow<Evaluated<'a>> {
     match expr.try_into().break_if_null()? {
-        Value::Point(v) => Ok(Evaluated::Value(Value::F64(v.x))),
+        Value::Point(v) => Ok(Evaluated::Value(Value::F64(OrderedFloat::from(v.x)))),
         _ => Err(EvaluateError::FunctionRequiresPointValue(name).into()),
     }
     .into_control_flow()
@@ -937,7 +937,7 @@ pub fn get_x<'a>(name: String, expr: Evaluated<'_>) -> ControlFlow<Evaluated<'a>
 
 pub fn get_y<'a>(name: String, expr: Evaluated<'_>) -> ControlFlow<Evaluated<'a>> {
     match expr.try_into().break_if_null()? {
-        Value::Point(v) => Ok(Evaluated::Value(Value::F64(v.y))),
+        Value::Point(v) => Ok(Evaluated::Value(Value::F64(OrderedFloat::from(v.y)))),
         _ => Err(EvaluateError::FunctionRequiresPointValue(name).into()),
     }
     .into_control_flow()
@@ -951,7 +951,7 @@ pub fn calc_distance<'a>(
     let x = eval_to_point(&name, x)?;
     let y = eval_to_point(&name, y)?;
 
-    Continue(Evaluated::Value(Value::F64(Point::calc_distance(&x, &y))))
+    Continue(Evaluated::Value(Value::F64(OrderedFloat::from(Point::calc_distance(&x, &y)))))
 }
 
 pub fn length<'a>(name: String, expr: Evaluated<'_>) -> ControlFlow<Evaluated<'a>> {

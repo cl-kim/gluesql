@@ -128,7 +128,7 @@ fn eval_to_int(name: &str, evaluated: Evaluated<'_>) -> ControlFlow<i64> {
 fn eval_to_float(name: &str, evaluated: Evaluated<'_>) -> ControlFlow<f64> {
     match evaluated.try_into().break_if_null()? {
         Value::I64(v) => Continue(v as f64),
-        Value::F32(v) => Continue(v.into()),
+        Value::F32(v) => Continue(v.into_inner() as f64),
         Value::F64(v) => Continue(v),
         _ => Break(BreakCase::Err(
             EvaluateError::FunctionRequiresFloatValue(name.to_owned()).into(),
